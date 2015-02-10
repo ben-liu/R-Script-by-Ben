@@ -1,6 +1,7 @@
 # this script is to parse and process passed affliates 
 # in recent ACCA sitting on ACCA website
 
+# setwd("~/GitHub/parse-with-R")
 
 library(XML)
 library(RCurl)
@@ -39,6 +40,7 @@ for (i in 1:26){
 
 names(database)= gsub(" |/",".",names(database))
 # write.csv(database,"acca dec 2014 affiliate.csv",row.names=F)
+# database=read.csv("acca dec 2014 affiliate.csv")
 
 database$Country=as.character(database$Country)
 
@@ -49,7 +51,22 @@ tb=as.data.frame(tb)
 tb$Country=row.names(tb)
 names(tb)=c("No.of.Affiliates","Country")
 
+
 # mark location on map (WIP)
+# change country name
+tb$Country=gsub("China,Peoples Rep of","China",tb$Country)
+tb$Country=gsub(" SAR","",tb$Country)
+tb$Country=gsub("St Vincent","Saint Vincent and the Grenadines",tb$Country)
+tb$Country=gsub("St","Saint",tb$Country)
+tb$Country=gsub("&","and",tb$Country)
+tb$Country=gsub("  and"," and",tb$Country)
+tb$Country=gsub("-","and ",tb$Country)
+tb$Country=gsub("Dem Rep of","the Democratic Republic of the",tb$Country)
+tb$Country=gsub("Turks and Caicos","Turks and Caicos Islands",tb$Country)
+
 library(rworldmap)
-newmap <- getMap(resolution = "coarse")
-plot(newmap)
+map=joinCountryData2Map(tb, joinCode="NAME", nameJoinColumn="Country",verbose=TRUE)
+mapCountryData(map, nameColumnToPlot="No.of.Affiliates", catMethod="fixedWidth", missingCountryCol = gray(.8))
+
+
+
