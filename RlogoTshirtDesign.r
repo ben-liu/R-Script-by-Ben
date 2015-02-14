@@ -1,4 +1,4 @@
-# slightly changed from Patterson's script
+# script written by @M_T_Patterson
 
 # Script by Mark T Patterson
 # twitter: @M_T_Patterson
