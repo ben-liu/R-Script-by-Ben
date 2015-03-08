@@ -21,15 +21,15 @@ audit[,2]=gsub(" $","",audit[,2])
 data[,1]=as.character(data[,1])
 data[,2]=as.character(data[,2])
 
-# skip erros; not fully functional yet
+# skip erros (need improvement)
 for (i in 1:nrow(audit)){
   tryCatch({audit$symbol[i]=data$symbol[grepl(audit[i,2],data[,2])]}, error=function(e){})}
 
 # write.csv(audit,"audit.csv",row.names=F)
 # audit=read.csv("audit.csv")
 
-# get sector and industry
-for (j in 1:nrow(audit)){
+# get sector and industry (need improvement)
+for (j in 1:nrow(audit)){if(is.na(audit$sector[j])) 
   tryCatch({
   URL=paste0("http://markets.ft.com/research/Markets/Tearsheets/Summary?s=",
              audit$symbol[j],
