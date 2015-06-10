@@ -1,0 +1,179 @@
+---
+title: "Language Survey responses visualisation"
+author: "Ben Liu"
+date: "27 April 2015"
+output:
+  word_document: default
+  pdf_document:
+    highlight:
+    - zenburn
+    toc:
+    - yes
+  html_document:
+    theme:
+    - united
+    toc:
+    - yes
+---
+
+## Introduction
+
+Questionnaire can be found in this link (Google Form): <https://docs.google.com/a/maqleurope.com/forms/d/1LDAchdyIxuEQpq8oscPU8RAmI-F2hfop43tSmC7OpLc/edit?usp=drive_web>.
+
+Responses are gathered in a Google Sheet *(require Marvelous login to open)* <https://docs.google.com/a/maqleurope.com/spreadsheets/d/1qd2kq2ZmoHb1uv61DrWudpqwKCVQmd6ORj5zwMnWQ-A/edit#gid=916513353>.
+
+This R script will parse real-time responses from Google Sheet, then visualise the results. 
+
+```{r,cache=T,echo=F,warning=F,cache.comments=F,message=F,error=F,background=F}
+# setwd("~/Google Drive/R working/twitteR/")
+# setwd("C:/Users/Ben/Google Drive/R working/twitteR/")
+# setwd("C:/Users/Harry Samsung Laptop/Desktop/")
+source("lang survey.r")
+```
+
+
+## Summary
+
+In total, `r nrow(raw)` participants from `r length(unique(raw$country))` countries, speaking `r length(unique(raw$language))` languages, have responded the survey. 
+
+
+### Respondents' resident countries and primary languages
+
+Answers for the first two questions are combined for comparison. 
+
+```{r,echo=F,cache=F,warning=F,comment=F,message=F,fig.width=8}
+require(dplyr)
+require(ggplot2)
+require(gridExtra)
+
+# plot countries
+df=raw %>% 
+    group_by(country) %>%
+    summarise(count=n()) %>%
+    arrange(desc(count)) %>%
+    filter(count>=5)
+# shorten country names
+df$country=gsub("United Kingdom of Great Britain and Northern Ireland","UK",df$country)
+df$country=gsub("United States of America","USA",df$country)
+
+df$country=factor(df$country,levels=arrange(df,count)$country)
+
+p1=ggplot(df,aes(x=country,y=count))+coord_flip()+geom_bar(stat="identity")+labs(x="Countries",y="Number of respondents",title="Country of residence")
+
+# plot language
+df=raw %>% 
+    group_by(language) %>%
+    summarise(count=n()) %>%
+    arrange(desc(count)) %>%
+    filter(count>=5)
+
+df$language=factor(df$language,levels=arrange(df,count)$language)
+
+p2=ggplot(df,aes(x=language,y=count))+coord_flip()+geom_bar(stat="identity")+labs(x="Languages",y="Number of respondents",title="Primary language")
+
+# create a frame for comparison
+grid.arrange(p1,p2,ncol=2)
+
+```
+
+### Japanese games fan
+
+```{r,echo=F,cache=T,cache.comments=F,warning=F}
+require(dplyr)
+df=as.data.frame(table(raw$japan_game_fan))
+```
+
+`r round(df[df[,1] %in% "Varies",2]/sum(df[,2])*100,digits = 0)`% of respondents are still confused whether they like Japanese games or not.
+
+Within `r df[df[,1] %in% "Yes",2]` respondents who claimed to be Japanese games fans, `r round(nrow(raw[!(raw$purchased_game %in% "I've never purchased a Marvelous Europe game"),])/df[df[,1] %in% "Yes",2]*100,digits=0)`% have purchased one or more Marvelous games.
+
+
+```{r,echo=F,cache=T}
+# Q3 are you japanese game fan
+qplot(raw$japan_game_fan,
+      main="Are you a Japanese games fan?",
+      xlab="Number of respondents")
+```
+
+### Purchased Marvelous games
+
+```{r,cache=T,echo=F}
+# Q4 purchased game before
+# breakdown multiple answers
+purchased_game=unlist(strsplit(raw$purchased_game,", "))
+df=data.frame(purchased_game,rep(1,length(purchased_game)))
+names(df)=c("game","count")
+df=df %>%
+  group_by(game) %>%
+  summarise(total=sum(count)) %>%
+  arrange(desc(total))
+df$game=factor(df$game,levels=arrange(df,total)$game)
+```
+
+`r round(df[df$game %in% "SENRAN KAGURA: Burst",]$total/nrow(raw)*100,digits=0)`% of the respondents have purchased Senran Kagura Burst before. Shinovi Versus is catching up with `r round(df[df$game %in% "SENRAN KAGURA: Shinovi Versus",]$total/nrow(raw)*100,digits=0)`%, despite Shinovi Versus was only released digitally in Europe.
+
+With hindsight, Rune Factory 4, possessed by `r round(df[df$game %in% "Rune Factory 4",]$total/nrow(raw)*100,digits=0)`% of respondents, could have achieved better sales if we release physical edition in Europe. 
+
+`r round(nrow(raw[raw$purchased_game %in% "I've never purchased a Marvelous Europe game",])/nrow(raw)*100,digits=0)`% of respondents haven't purchased any Marvelous games before. We certainly want to convert this percentage into our sales growth. 
+
+
+```{r,echo=F,cache=T}
+ggplot(df,aes(x=game,y=total))+coord_flip()+geom_bar(stat="identity")+labs(x="Game",y="Purchases",title="Marvelous games purchased")
+```
+
+### Choice of language in games
+
+`r round(nrow(raw[raw$lang_choice %in% "Yes",])/nrow(raw)*100,digits=0)`% ask for a choice of language options.
+
+```{r,echo=F}
+# 5. Would you prefer games to offer a choice of language options?	
+qplot(raw$lang_choice,
+      main="Prefer games with a choice of language options",
+      xlab="Number of respondents")
+```
+
+
+### Buy games in primary language
+
+`r round(nrow(raw[!(raw$buy_if_primary_lang %in% "No") & raw$purchased_game %in% "I've never purchased a Marvelous Europe game",])/nrow(raw)*100,digits=0)`% of respondents who haven't bought Marvelous games would at least think about buying if the game is localised in their primary languages.
+
+```{r,echo=F}
+# 6. Would you be more likely to buy a game if it was in your primary language?	
+qplot(raw$buy_if_primary_lang,
+      main="Prefer games with a choice of language options",
+      xlab="Number of respondents")
+```
+
+
+### Localisation - audio dub or subtitle
+```{r,echo=F}
+# 7. Do you prefer audio dub or subtitle localisation?	
+qplot(raw$dub_or_sub,
+      main="Audio dub or subtitle localisation",
+      xlab="Number of respondents")
+```
+
+
+### Dual audio in both Japanese and local language
+```{r,echo=F}
+# 8. Is offering dual audio (Both Local and Japanese) important to you?
+qplot(raw$dual_audio,
+      main="Importance of offering dual audio",
+      xlab="Number of respondents")
+```
+
+
+### Survey entries per country 
+
+This chart is for Mike.
+
+```{r,echo=F,warning=F,cache.comments=F,cache=F,fig.width=8,error=F}
+# convert timestamp
+library(scales)
+raw$timestamp=as.POSIXlt(raw$timestamp,format="%d/%m/%Y %H:%M:%S")
+
+raw$country=gsub("United Kingdom of Great Britain and Northern Ireland","UK",raw$country)
+raw$country=gsub("United States of America","USA",raw$country)
+
+qplot(timestamp, country, data=raw, geom="point")+scale_x_datetime(breaks=date_breaks("1 day"),minor_breaks = "1 hour")
+```
